@@ -1,24 +1,43 @@
 import React, { useState, useEffect } from "react";
-
 import MovieCard from "./MovieCard";
 import SearchIcon from "./search.svg";
 import "./App.css";
 
-const API_URL = "http://www.omdbapi.com?apikey=b6003d8a";
+const API_URL = "http://www.omdbapi.com/";
+const API_KEY = "b6003d8a";
 
 const App = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [movies, setMovies] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    // Initial load with default search term
     searchMovies("Spiderman");
   }, []);
 
   const searchMovies = async (title) => {
-    const response = await fetch(`${API_URL}&s=${title}`);
-    const data = await response.json();
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}?apikey=${API_KEY}&s=${title}`);
+      const data = await response.json();
+      if (data.Response === "True") {
+        setMovies(data.Search);
+      } else {
+        setMovies([]);
+      }
+    } catch (error) {
+      console.error('Error fetching movies:', error);
+      setMovies([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    setMovies(data.Search);
+  const handleSearch = () => {
+    if (searchTerm.trim() !== "") {
+      searchMovies(searchTerm);
+    }
   };
 
   return (
@@ -29,19 +48,28 @@ const App = () => {
         <input
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              handleSearch();
+            }
+          }}
           placeholder="Search for movies"
         />
         <img
           src={SearchIcon}
           alt="search"
-          onClick={() => searchMovies(searchTerm)}
+          onClick={handleSearch}
         />
       </div>
 
-      {movies?.length > 0 ? (
+      {loading ? (
+        <div className="loading">
+          <p>Loading...</p>
+        </div>
+      ) : movies?.length > 0 ? (
         <div className="container">
           {movies.map((movie) => (
-            <MovieCard movie={movie} />
+            <MovieCard key={movie.imdbID} movie={movie} />
           ))}
         </div>
       ) : (
